@@ -1,0 +1,404 @@
+@import "tailwindcss";
+
+:root {
+  /* Snow Leopard color palette */
+  --sl-blue-start: #5b9bd5;
+  --sl-blue-end: #2d6da3;
+  --sl-toolbar-start: #e8e8e8;
+  --sl-toolbar-end: #c8c8c8;
+  --sl-window-bg: #ededed;
+  --sl-sidebar-bg: #d4dce4;
+  --sl-text: #000000;
+  --sl-text-secondary: #666666;
+  --sl-border: #999999;
+  --sl-border-light: #cccccc;
+  --sl-highlight: #3875d7;
+  --sl-button-start: #ffffff;
+  --sl-button-end: #e0e0e0;
+  --sl-button-pressed-start: #b0b0b0;
+  --sl-button-pressed-end: #d0d0d0;
+  --sl-input-bg: #ffffff;
+  --sl-scrollbar: #c0c0c0;
+}
+
+body {
+  background: url('/background.png') center center / cover fixed;
+  min-height: 100vh;
+  color: var(--sl-text);
+  font-family: "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Verdana, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Aqua-style window */
+.aqua-window {
+  background: var(--sl-window-bg);
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 10px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+}
+
+/* Window titlebar */
+.aqua-titlebar {
+  background: linear-gradient(180deg, #e8e8e8 0%, #d0d0d0 45%, #c8c8c8 55%, #d8d8d8 100%);
+  border-bottom: 1px solid #a0a0a0;
+  padding: 0 12px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.aqua-titlebar-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Traffic lights */
+.aqua-traffic-lights {
+  position: absolute;
+  left: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.aqua-traffic-light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+.aqua-traffic-light.red {
+  background: linear-gradient(180deg, #ff6058 0%, #e14640 100%);
+}
+
+.aqua-traffic-light.yellow {
+  background: linear-gradient(180deg, #ffbf2f 0%, #dea123 100%);
+}
+
+.aqua-traffic-light.green {
+  background: linear-gradient(180deg, #29cd41 0%, #1aab29 100%);
+}
+
+/* Toolbar */
+.aqua-toolbar {
+  background: linear-gradient(180deg, #e8e8e8 0%, #d0d0d0 50%, #c0c0c0 100%);
+  border-bottom: 1px solid #888;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Aqua buttons */
+.aqua-button {
+  background: linear-gradient(180deg, #fefefe 0%, #e8e8e8 45%, #d8d8d8 55%, #e0e0e0 100%);
+  border: 1px solid #888;
+  border-radius: 4px;
+  padding: 4px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.aqua-button:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #f0f0f0 45%, #e0e0e0 55%, #e8e8e8 100%);
+}
+
+.aqua-button:active {
+  background: linear-gradient(180deg, #c0c0c0 0%, #d0d0d0 45%, #d8d8d8 55%, #d0d0d0 100%);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.aqua-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Primary blue button */
+.aqua-button-primary {
+  background: linear-gradient(180deg, #7ab8f5 0%, #5b9bd5 30%, #3d7fc0 70%, #5b9bd5 100%);
+  border: 1px solid #2860a0;
+  color: white;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.aqua-button-primary:hover {
+  background: linear-gradient(180deg, #8ac4ff 0%, #6ba8e0 30%, #4d8fcc 70%, #6ba8e0 100%);
+}
+
+.aqua-button-primary:active {
+  background: linear-gradient(180deg, #4080b8 0%, #3070a8 30%, #2060a0 70%, #3070a8 100%);
+}
+
+/* Input fields */
+.aqua-input {
+  background: white;
+  border: 1px solid #888;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #333;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.5);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.aqua-input:focus {
+  border-color: #5b9bd5;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.1),
+    0 0 0 3px rgba(91, 155, 213, 0.3);
+}
+
+.aqua-input::placeholder {
+  color: #999;
+}
+
+/* Select dropdown */
+.aqua-select {
+  background: linear-gradient(180deg, #fefefe 0%, #e8e8e8 45%, #d8d8d8 55%, #e0e0e0 100%);
+  border: 1px solid #888;
+  border-radius: 4px;
+  padding: 4px 28px 4px 10px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M3 4l3 4 3-4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.aqua-select:focus {
+  border-color: #5b9bd5;
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(91, 155, 213, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Checkbox */
+.aqua-checkbox {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(180deg, #fefefe 0%, #e0e0e0 100%);
+  border: 1px solid #888;
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.aqua-checkbox:checked {
+  background: linear-gradient(180deg, #5b9bd5 0%, #3d7fc0 100%);
+  border-color: #2860a0;
+}
+
+.aqua-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Textarea */
+.aqua-textarea {
+  background: white;
+  border: 1px solid #888;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #333;
+  resize: vertical;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.5);
+  outline: none;
+}
+
+.aqua-textarea:focus {
+  border-color: #5b9bd5;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.1),
+    0 0 0 3px rgba(91, 155, 213, 0.3);
+}
+
+/* Content area with pinstripes */
+.aqua-content {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      #ededed 0px,
+      #ededed 1px,
+      #e5e5e5 1px,
+      #e5e5e5 2px
+    );
+  padding: 16px;
+}
+
+/* Sidebar style */
+.aqua-sidebar {
+  background: linear-gradient(180deg, #d4dce4 0%, #b8c6d4 100%);
+  border-right: 1px solid #a0a0a0;
+}
+
+/* Panel/group box */
+.aqua-panel {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid #c0c0c0;
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Label */
+.aqua-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Segmented control (tab bar style) */
+.aqua-segmented {
+  display: inline-flex;
+  background: linear-gradient(180deg, #d8d8d8 0%, #c8c8c8 100%);
+  border: 1px solid #888;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.aqua-segmented-item {
+  padding: 4px 16px;
+  font-size: 12px;
+  color: #333;
+  border-right: 1px solid #888;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.aqua-segmented-item:last-child {
+  border-right: none;
+}
+
+.aqua-segmented-item:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.aqua-segmented-item.active {
+  background: linear-gradient(180deg, #5b9bd5 0%, #3d7fc0 100%);
+  color: white;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 15px;
+  height: 15px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-left: 1px solid #d0d0d0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #c8c8c8 0%, #a8a8a8 50%, #c8c8c8 100%);
+  border: 1px solid #888;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(90deg, #b8b8b8 0%, #989898 50%, #b8b8b8 100%);
+}
+
+/* Upload drop zone */
+.aqua-dropzone {
+  background: white;
+  border: 2px dashed #a0a0a0;
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aqua-dropzone:hover {
+  border-color: #5b9bd5;
+  background: #f8fbff;
+}
+
+.aqua-dropzone.dragging {
+  border-color: #5b9bd5;
+  background: #e8f4ff;
+  box-shadow: inset 0 0 10px rgba(91, 155, 213, 0.2);
+}
+
+/* Card */
+.aqua-card {
+  background: white;
+  border: 1px solid #c0c0c0;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.aqua-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Loading spinner - Aqua style */
+.aqua-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #d0d0d0;
+  border-top-color: #5b9bd5;
+  border-radius: 50%;
+  animation: aqua-spin 0.8s linear infinite;
+}
+
+@keyframes aqua-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Grid overlay for pixel inspection */
+.grid-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: calc(100% / 256) calc(100% / 256);
+}
