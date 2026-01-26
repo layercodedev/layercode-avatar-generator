@@ -4,7 +4,7 @@ import { generateAvatars } from "@/lib/openai";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { imageBase64, prompt, isPetMode, backgroundColor } = body;
+    const { imageBase64, prompt, isPetMode, backgroundColor, count = 6 } = body;
 
     if (!imageBase64 || !prompt) {
       return NextResponse.json(
@@ -19,8 +19,9 @@ export async function POST(request: NextRequest) {
       finalPrompt = prompt.replace(/#1e2a3a/gi, backgroundColor);
     }
 
-    // Generate 6 avatar variants
-    const generatedImages = await generateAvatars(imageBase64, finalPrompt, 6, isPetMode || false);
+    // Generate avatar variants (1-10, default 6)
+    const variantCount = Math.min(10, Math.max(1, count));
+    const generatedImages = await generateAvatars(imageBase64, finalPrompt, variantCount, isPetMode || false);
 
     if (generatedImages.length === 0) {
       return NextResponse.json(

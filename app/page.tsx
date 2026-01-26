@@ -41,6 +41,7 @@ function HomeContent() {
   const [showGrid, setShowGrid] = useState(false);
   const [isPetMode, setIsPetMode] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState("#1e2a3a");
+  const [variantCount, setVariantCount] = useState(6);
   const [currentGeneration, setCurrentGeneration] = useState<GenerationWithVariants | null>(null);
 
   // Load prompts and team members from localStorage
@@ -98,6 +99,7 @@ function HomeContent() {
           prompt,
           isPetMode,
           backgroundColor,
+          count: variantCount,
         }),
       });
 
@@ -170,6 +172,24 @@ function HomeContent() {
 
             <div>
               <label className="aqua-label block mb-2">
+                Variants to Generate
+              </label>
+              <select
+                value={variantCount}
+                onChange={(e) => setVariantCount(Number(e.target.value))}
+                className="aqua-select w-full"
+              >
+                <option value={1}>1 variant</option>
+                <option value={2}>2 variants</option>
+                <option value={3}>3 variants</option>
+                <option value={4}>4 variants</option>
+                <option value={6}>6 variants</option>
+                <option value={8}>8 variants</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="aqua-label block mb-2">
                 Assign to Team Member
               </label>
               <select
@@ -205,7 +225,9 @@ function HomeContent() {
               {isPetMode ? "Generating pet avatars..." : "Generating avatars..."}
             </span>
           ) : (
-            isPetMode ? "Generate 6 Pet Variants 🐾" : "Generate 6 Variants"
+            isPetMode
+              ? `Generate ${variantCount} Pet Variant${variantCount === 1 ? "" : "s"} 🐾`
+              : `Generate ${variantCount} Variant${variantCount === 1 ? "" : "s"}`
           )}
         </button>
       </div>
@@ -231,7 +253,7 @@ function HomeContent() {
           <div className="flex items-center justify-center h-64 bg-white/50 rounded-lg border border-gray-200">
             <div className="text-center space-y-3">
               <div className="aqua-spinner mx-auto" />
-              <p className="text-gray-600">Generating 6 avatar variants...</p>
+              <p className="text-gray-600">Generating {variantCount} avatar variant{variantCount === 1 ? "" : "s"}...</p>
               <p className="text-xs text-gray-400">This may take a minute</p>
             </div>
           </div>
