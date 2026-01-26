@@ -8,7 +8,7 @@ export const openai = new OpenAI({
 });
 
 // Load the style reference image once at startup
-const styleReferencePath = path.join(process.cwd(), "..", "Aidan hifi.png");
+const styleReferencePath = path.join(process.cwd(), "public", "style-reference.png");
 let styleReferenceBuffer: Buffer | null = null;
 
 async function getStyleReference(): Promise<Buffer> {

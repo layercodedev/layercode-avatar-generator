@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-
-interface Prompt {
-  id: number;
-  name: string;
-  content: string;
-  isDefault: boolean;
-  isPetMode: boolean;
-}
+import { type Prompt } from "@/lib/storage";
 
 interface PromptEditorProps {
   value: string;

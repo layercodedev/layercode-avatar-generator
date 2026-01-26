@@ -2,32 +2,37 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import {
+  getTeamMembers,
+  addTeamMember,
+  updateTeamMember,
+  deleteTeamMember,
+  getVariantById,
+  type TeamMember,
+  type Variant,
+} from "@/lib/storage";
 
-interface Variant {
-  id: number;
-  imageData: string;
-}
-
-interface TeamMember {
-  id: number;
-  name: string;
-  officialAvatarId: number | null;
+interface TeamMemberWithAvatar extends TeamMember {
   officialAvatar: Variant | null;
-  createdAt: Date;
 }
 
 export default function TeamPage() {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMemberWithAvatar[]>([]);
   const [newMemberName, setNewMemberName] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadTeamMembers = useCallback(async () => {
+  const loadTeamMembers = useCallback(() => {
     setIsLoading(true);
-    const res = await fetch("/api/team");
-    const data = await res.json();
-    setTeamMembers(data);
+    const members = getTeamMembers();
+    const membersWithAvatars = members.map((member) => ({
+      ...member,
+      officialAvatar: member.officialAvatarId
+        ? getVariantById(member.officialAvatarId)
+        : null,
+    }));
+    setTeamMembers(membersWithAvatars);
     setIsLoading(false);
   }, []);
 
@@ -35,38 +40,28 @@ export default function TeamPage() {
     loadTeamMembers();
   }, [loadTeamMembers]);
 
-  const handleAddMember = async (e: React.FormEvent) => {
+  const handleAddMember = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMemberName.trim()) return;
 
-    await fetch("/api/team", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newMemberName.trim() }),
-    });
-
+    addTeamMember(newMemberName.trim());
     setNewMemberName("");
     loadTeamMembers();
   };
 
-  const handleEditMember = async (id: number) => {
+  const handleEditMember = (id: number) => {
     if (!editingName.trim()) return;
 
-    await fetch("/api/team", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, name: editingName.trim() }),
-    });
-
+    updateTeamMember(id, { name: editingName.trim() });
     setEditingId(null);
     setEditingName("");
     loadTeamMembers();
   };
 
-  const handleDeleteMember = async (id: number) => {
+  const handleDeleteMember = (id: number) => {
     if (!confirm("Delete this team member? Their generations will be kept.")) return;
 
-    await fetch(`/api/team?id=${id}`, { method: "DELETE" });
+    deleteTeamMember(id);
     loadTeamMembers();
   };
 

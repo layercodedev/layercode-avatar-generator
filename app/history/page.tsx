@@ -2,62 +2,78 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { GenerationCard } from "@/components/GenerationCard";
+import {
+  getGenerations,
+  getTeamMembers,
+  getVariantsByGeneration,
+  deleteGeneration,
+  type Generation,
+  type TeamMember,
+  type Variant,
+} from "@/lib/storage";
 
-interface Variant {
-  id: number;
-  imageData: string;
-  isFavorited: boolean;
-}
-
-interface TeamMember {
-  id: number;
-  name: string;
-}
-
-interface Generation {
-  id: number;
-  originalImage: string;
-  promptUsed: string;
-  teamMemberId: number | null;
-  createdAt: Date;
+interface GenerationWithDetails extends Generation {
   variants: Variant[];
   teamMember: TeamMember | null;
 }
 
 export default function HistoryPage() {
-  const [generations, setGenerations] = useState<Generation[]>([]);
+  const [generations, setGenerations] = useState<GenerationWithDetails[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [search, setSearch] = useState("");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [selectedTeamMember, setSelectedTeamMember] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadGenerations = useCallback(async () => {
+  const loadGenerations = useCallback(() => {
     setIsLoading(true);
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (favoritesOnly) params.set("favoritesOnly", "true");
-    if (selectedTeamMember) params.set("teamMemberId", selectedTeamMember);
+    const allTeamMembers = getTeamMembers();
+    let allGenerations = getGenerations();
 
-    const res = await fetch(`/api/generations?${params}`);
-    const data = await res.json();
-    setGenerations(data);
+    // Filter by team member
+    if (selectedTeamMember) {
+      allGenerations = allGenerations.filter(
+        (g) => g.teamMemberId === parseInt(selectedTeamMember)
+      );
+    }
+
+    // Search by prompt text
+    if (search) {
+      allGenerations = allGenerations.filter((g) =>
+        g.promptUsed.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    // Build generation details with variants and team member
+    let results: GenerationWithDetails[] = allGenerations.map((gen) => {
+      const variants = getVariantsByGeneration(gen.id);
+      const teamMember = gen.teamMemberId
+        ? allTeamMembers.find((tm) => tm.id === gen.teamMemberId) || null
+        : null;
+      return { ...gen, variants, teamMember };
+    });
+
+    // Filter favorites only
+    if (favoritesOnly) {
+      results = results
+        .map((gen) => ({
+          ...gen,
+          variants: gen.variants.filter((v) => v.isFavorited),
+        }))
+        .filter((gen) => gen.variants.length > 0);
+    }
+
+    setGenerations(results);
+    setTeamMembers(allTeamMembers);
     setIsLoading(false);
   }, [search, favoritesOnly, selectedTeamMember]);
 
-  const loadTeamMembers = useCallback(async () => {
-    const res = await fetch("/api/team");
-    const data = await res.json();
-    setTeamMembers(data);
-  }, []);
-
   useEffect(() => {
     loadGenerations();
-    loadTeamMembers();
-  }, [loadGenerations, loadTeamMembers]);
+  }, [loadGenerations]);
 
-  const handleDelete = async (id: number) => {
-    await fetch(`/api/generations?id=${id}`, { method: "DELETE" });
+  const handleDelete = (id: number) => {
+    deleteGeneration(id);
     loadGenerations();
   };
 

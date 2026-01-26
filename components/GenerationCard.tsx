@@ -2,30 +2,15 @@
 
 import Link from "next/link";
 import { format } from "date-fns";
+import { type Generation, type Variant, type TeamMember } from "@/lib/storage";
 
-interface Variant {
-  id: number;
-  imageData: string;
-  isFavorited: boolean;
-}
-
-interface TeamMember {
-  id: number;
-  name: string;
-}
-
-interface Generation {
-  id: number;
-  originalImage: string;
-  promptUsed: string;
-  teamMemberId: number | null;
-  createdAt: Date;
+interface GenerationWithDetails extends Generation {
   variants: Variant[];
   teamMember: TeamMember | null;
 }
 
 interface GenerationCardProps {
-  generation: Generation;
+  generation: GenerationWithDetails;
   onDelete?: (id: number) => void;
 }
 

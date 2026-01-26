@@ -6,31 +6,23 @@ import { ImageUpload } from "@/components/ImageUpload";
 import { PromptEditor } from "@/components/PromptEditor";
 import { VariantGrid } from "@/components/VariantGrid";
 import { ColorPicker } from "@/components/ColorPicker";
+import {
+  getPrompts,
+  getTeamMembers,
+  getGenerations,
+  getVariantsByGeneration,
+  addGeneration,
+  addVariants,
+  updateVariant,
+  updateTeamMember,
+  addPrompt,
+  type Prompt,
+  type TeamMember,
+  type Variant,
+  type Generation,
+} from "@/lib/storage";
 
-interface Prompt {
-  id: number;
-  name: string;
-  content: string;
-  isDefault: boolean;
-  isPetMode: boolean;
-}
-
-interface Variant {
-  id: number;
-  imageData: string;
-  isFavorited: boolean;
-}
-
-interface TeamMember {
-  id: number;
-  name: string;
-}
-
-interface Generation {
-  id: number;
-  originalImage: string;
-  promptUsed: string;
-  teamMemberId: number | null;
+interface GenerationWithVariants extends Generation {
   variants: Variant[];
 }
 
@@ -49,10 +41,9 @@ function HomeContent() {
   const [showGrid, setShowGrid] = useState(false);
   const [isPetMode, setIsPetMode] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState("#1e2a3a");
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [currentGeneration, setCurrentGeneration] = useState<Generation | null>(null);
+  const [currentGeneration, setCurrentGeneration] = useState<GenerationWithVariants | null>(null);
 
-  // Load prompts and team members
+  // Load prompts and team members from localStorage
   useEffect(() => {
     loadPrompts();
     loadTeamMembers();
@@ -65,34 +56,29 @@ function HomeContent() {
     }
   }, [generationId]);
 
-  const loadPrompts = async () => {
-    const res = await fetch("/api/prompts");
-    const data = await res.json();
-    setPrompts(data);
+  const loadPrompts = () => {
+    setPrompts(getPrompts());
   };
 
-  const loadTeamMembers = async () => {
-    const res = await fetch("/api/team");
-    const data = await res.json();
-    setTeamMembers(data);
+  const loadTeamMembers = () => {
+    setTeamMembers(getTeamMembers());
   };
 
-  const loadGeneration = async (id: number) => {
-    const res = await fetch(`/api/generations/${id}`);
-    const data = await res.json();
-    setCurrentGeneration(data);
-    setImageBase64(data.originalImage);
-    setPrompt(data.promptUsed);
-    setVariants(data.variants);
-    setSelectedTeamMember(data.teamMemberId);
+  const loadGeneration = (id: number) => {
+    const generations = getGenerations();
+    const gen = generations.find((g) => g.id === id);
+    if (gen) {
+      const genVariants = getVariantsByGeneration(id);
+      setCurrentGeneration({ ...gen, variants: genVariants });
+      setImageBase64(gen.originalImage);
+      setPrompt(gen.promptUsed);
+      setVariants(genVariants);
+      setSelectedTeamMember(gen.teamMemberId);
+    }
   };
 
-  const handleSavePrompt = async (name: string, content: string) => {
-    await fetch("/api/prompts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, content }),
-    });
+  const handleSavePrompt = (name: string, content: string) => {
+    addPrompt(name, content, isPetMode);
     loadPrompts();
   };
 
@@ -110,7 +96,6 @@ function HomeContent() {
         body: JSON.stringify({
           imageBase64,
           prompt,
-          teamMemberId: selectedTeamMember,
           isPetMode,
           backgroundColor,
         }),
@@ -123,8 +108,12 @@ function HomeContent() {
         return;
       }
 
-      setVariants(data.variants);
-      setCurrentGeneration(data.generation);
+      // Save to localStorage
+      const generation = addGeneration(imageBase64, data.promptUsed, selectedTeamMember);
+      const newVariants = addVariants(generation.id, data.images);
+
+      setVariants(newVariants);
+      setCurrentGeneration({ ...generation, variants: newVariants });
     } catch {
       alert("Generation failed. Please try again.");
     } finally {
@@ -132,32 +121,21 @@ function HomeContent() {
     }
   };
 
-  const handleToggleFavorite = async (variant: Variant) => {
-    await fetch(`/api/variants/${variant.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isFavorited: !variant.isFavorited }),
-    });
-
-    setVariants(
-      variants.map((v) =>
-        v.id === variant.id ? { ...v, isFavorited: !v.isFavorited } : v
-      )
-    );
+  const handleToggleFavorite = (variant: Variant) => {
+    const updated = updateVariant(variant.id, { isFavorited: !variant.isFavorited });
+    if (updated) {
+      setVariants(
+        variants.map((v) =>
+          v.id === variant.id ? { ...v, isFavorited: !v.isFavorited } : v
+        )
+      );
+    }
   };
 
-  const handleSetOfficial = async (variant: Variant) => {
+  const handleSetOfficial = (variant: Variant) => {
     if (!selectedTeamMember) return;
 
-    await fetch(`/api/variants/${variant.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        setAsOfficial: true,
-        teamMemberId: selectedTeamMember,
-      }),
-    });
-
+    updateTeamMember(selectedTeamMember, { officialAvatarId: variant.id });
     alert("Avatar set as official!");
   };
 

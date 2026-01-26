@@ -1,22 +1,43 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import * as schema from "./schema";
+// Client-side localStorage storage for avatar app
+// All data persists in the browser only
 
-const sqlite = new Database("avatar.db");
-export const db = drizzle(sqlite, { schema });
+export interface TeamMember {
+  id: number;
+  name: string;
+  officialAvatarId: number | null;
+  createdAt: Date;
+}
 
-// Initialize database with default prompt
-export async function initializeDatabase() {
-  // Check if default prompt exists
-  const existingDefault = await db.query.prompts.findFirst({
-    where: (prompts, { eq }) => eq(prompts.isDefault, true),
-  });
+export interface Prompt {
+  id: number;
+  name: string;
+  content: string;
+  isDefault: boolean;
+  isPetMode: boolean;
+  createdAt: Date;
+}
 
-  if (!existingDefault) {
-    // Insert the default high-fidelity style
-    await db.insert(schema.prompts).values({
-      name: "High-Fidelity Digital Portrait",
-      content: `Create a stylized digital portrait avatar.
+export interface Generation {
+  id: number;
+  originalImage: string;
+  promptUsed: string;
+  teamMemberId: number | null;
+  createdAt: Date;
+}
+
+export interface Variant {
+  id: number;
+  generationId: number;
+  imageData: string;
+  isFavorited: boolean;
+  createdAt: Date;
+}
+
+// Default prompts (hardcoded to ensure availability on fresh load)
+export const DEFAULT_PROMPTS: Omit<Prompt, "id" | "createdAt">[] = [
+  {
+    name: "High-Fidelity Digital Portrait",
+    content: `Create a stylized digital portrait avatar.
 
 STYLE (copy from image 1 exactly):
 Match the EXACT visual style of the first reference image - a clean, modern digital portrait with smooth color regions, soft edges, and a professional tech company aesthetic.
@@ -33,14 +54,12 @@ OUTPUT REQUIREMENTS:
 - Professional quality suitable for a company website or LinkedIn
 
 The result should look like it belongs in the same avatar set as image 1.`,
-      isDefault: true,
-      isPetMode: false,
-    });
-
-    // Insert the low-res pixel art style
-    await db.insert(schema.prompts).values({
-      name: "Low-Res Pixel Art",
-      content: `You are provided with two reference images:
+    isDefault: true,
+    isPetMode: false,
+  },
+  {
+    name: "Low-Res Pixel Art",
+    content: `You are provided with two reference images:
 - Image 1 (first image): A HIGH-FIDELITY pixel-art avatar that defines the exact visual style to replicate.
 - Image 2 (second image): A photographic portrait of the person whose likeness should be recreated.
 
@@ -89,14 +108,12 @@ DO NOT:
 - Change the background color
 
 The final image must look like it was created by the same artist who made image 1.`,
-      isDefault: false,
-      isPetMode: false,
-    });
-
-    // Insert the high-fidelity pixel art style (matching Aidan hifi.png)
-    await db.insert(schema.prompts).values({
-      name: "Hi-Fi Pixel Art (No Grid)",
-      content: `You are provided with two reference images:
+    isDefault: false,
+    isPetMode: false,
+  },
+  {
+    name: "Hi-Fi Pixel Art (No Grid)",
+    content: `You are provided with two reference images:
 - Image 1 (Style Reference): A pixel-art avatar that defines the exact visual style to replicate.
 - Image 2 (Subject Reference): A photographic portrait of the person whose likeness should be recreated.
 
@@ -173,14 +190,12 @@ FINAL QUALITY CHECK:
 - The person is immediately recognizable from Image 2
 - The image reads clearly at 512×512 pixels with fine detail
 If any check fails, simplify and re-render.`,
-      isDefault: false,
-      isPetMode: false,
-    });
-
-    // Insert the Ultra Hi-Fi Portrait style (ChatGPT-like quality)
-    await db.insert(schema.prompts).values({
-      name: "Ultra Hi-Fi Portrait (ChatGPT Style)",
-      content: `Transform this portrait photo into a stylized digital avatar.
+    isDefault: false,
+    isPetMode: false,
+  },
+  {
+    name: "Ultra Hi-Fi Portrait (ChatGPT Style)",
+    content: `Transform this portrait photo into a stylized digital avatar.
 
 STYLE:
 Create a high-fidelity digital portrait with a subtle pixelated texture. The style should feel like a premium tech company avatar - clean, modern, and professional. Think of it as a photograph that has been artistically processed with a very fine pixel overlay, not traditional chunky pixel art.
@@ -219,14 +234,12 @@ QUALITY:
 - The person should be immediately recognizable
 
 The final result should look like a cohesive set of team avatars you would see on a modern tech startup website - stylized but still clearly representing real people.`,
-      isDefault: false,
-      isPetMode: false,
-    });
-
-    // Insert the Clean Pixel Art style (maximum anti-dithering)
-    await db.insert(schema.prompts).values({
-      name: "Clean Pixel Art (No Dithering)",
-      content: `You are provided with two reference images:
+    isDefault: false,
+    isPetMode: false,
+  },
+  {
+    name: "Clean Pixel Art (No Dithering)",
+    content: `You are provided with two reference images:
 - Image 1 (Style Reference): A pixel-art avatar that defines the exact visual style to replicate.
 - Image 2 (Subject Reference): A photographic portrait of the person whose likeness should be recreated.
 
@@ -305,14 +318,12 @@ Before finalizing, verify:
 2. Are color transitions sharp edges, not blended?
 3. Does it look like classic video game sprite art?
 If any dithering is visible, simplify colors and re-render with solid blocks only.`,
-      isDefault: false,
-      isPetMode: false,
-    });
-
-    // Insert the Pet Mode style for animal portraits
-    await db.insert(schema.prompts).values({
-      name: "Pet Mode (Animals)",
-      content: `Create a stylized pixel art portrait of the animal in the provided photo.
+    isDefault: false,
+    isPetMode: false,
+  },
+  {
+    name: "Pet Mode (Animals)",
+    content: `Create a stylized pixel art portrait of the animal in the provided photo.
 
 SUBJECT (from the uploaded photo):
 Recreate the animal from the reference photo. Capture their unique features:
@@ -367,8 +378,196 @@ PROHIBITIONS:
 
 OUTPUT:
 A charming, recognizable pixel art portrait of the pet that could sit alongside human avatars in a company team page.`,
-      isDefault: false,
-      isPetMode: true,
-    });
+    isDefault: false,
+    isPetMode: true,
+  },
+];
+
+const STORAGE_KEYS = {
+  teamMembers: "avatar-app-team-members",
+  prompts: "avatar-app-prompts",
+  generations: "avatar-app-generations",
+  variants: "avatar-app-variants",
+  nextId: "avatar-app-next-id",
+};
+
+// ID generator
+function getNextId(key: string): number {
+  if (typeof window === "undefined") return Date.now();
+  const ids = JSON.parse(localStorage.getItem(STORAGE_KEYS.nextId) || "{}");
+  const nextId = (ids[key] || 0) + 1;
+  ids[key] = nextId;
+  localStorage.setItem(STORAGE_KEYS.nextId, JSON.stringify(ids));
+  return nextId;
+}
+
+// Generic storage helpers
+function getItems<T>(key: string): T[] {
+  if (typeof window === "undefined") return [];
+  const data = localStorage.getItem(key);
+  if (!data) return [];
+  return JSON.parse(data, (k, v) => {
+    if (k === "createdAt" && typeof v === "string") return new Date(v);
+    return v;
+  });
+}
+
+function setItems<T>(key: string, items: T[]): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(key, JSON.stringify(items));
+}
+
+// Team Members
+export function getTeamMembers(): TeamMember[] {
+  return getItems<TeamMember>(STORAGE_KEYS.teamMembers);
+}
+
+export function addTeamMember(name: string): TeamMember {
+  const members = getTeamMembers();
+  const member: TeamMember = {
+    id: getNextId("teamMember"),
+    name,
+    officialAvatarId: null,
+    createdAt: new Date(),
+  };
+  members.push(member);
+  setItems(STORAGE_KEYS.teamMembers, members);
+  return member;
+}
+
+export function updateTeamMember(id: number, updates: Partial<TeamMember>): TeamMember | null {
+  const members = getTeamMembers();
+  const index = members.findIndex((m) => m.id === id);
+  if (index === -1) return null;
+  members[index] = { ...members[index], ...updates };
+  setItems(STORAGE_KEYS.teamMembers, members);
+  return members[index];
+}
+
+export function deleteTeamMember(id: number): void {
+  const members = getTeamMembers().filter((m) => m.id !== id);
+  setItems(STORAGE_KEYS.teamMembers, members);
+  // Clear team member from generations
+  const generations = getGenerations();
+  generations.forEach((g) => {
+    if (g.teamMemberId === id) g.teamMemberId = null;
+  });
+  setItems(STORAGE_KEYS.generations, generations);
+}
+
+// Prompts
+export function getPrompts(): Prompt[] {
+  const stored = getItems<Prompt>(STORAGE_KEYS.prompts);
+  if (stored.length === 0) {
+    // Initialize with default prompts
+    const defaults = DEFAULT_PROMPTS.map((p, i) => ({
+      ...p,
+      id: i + 1,
+      createdAt: new Date(),
+    }));
+    setItems(STORAGE_KEYS.prompts, defaults);
+    return defaults;
   }
+  return stored;
+}
+
+export function addPrompt(name: string, content: string, isPetMode = false): Prompt {
+  const prompts = getPrompts();
+  const prompt: Prompt = {
+    id: getNextId("prompt"),
+    name,
+    content,
+    isDefault: false,
+    isPetMode,
+    createdAt: new Date(),
+  };
+  prompts.push(prompt);
+  setItems(STORAGE_KEYS.prompts, prompts);
+  return prompt;
+}
+
+export function updatePrompt(id: number, updates: Partial<Prompt>): Prompt | null {
+  const prompts = getPrompts();
+  const index = prompts.findIndex((p) => p.id === id);
+  if (index === -1) return null;
+  prompts[index] = { ...prompts[index], ...updates };
+  setItems(STORAGE_KEYS.prompts, prompts);
+  return prompts[index];
+}
+
+export function deletePrompt(id: number): boolean {
+  const prompts = getPrompts();
+  const prompt = prompts.find((p) => p.id === id);
+  if (prompt?.isDefault) return false; // Can't delete default
+  setItems(STORAGE_KEYS.prompts, prompts.filter((p) => p.id !== id));
+  return true;
+}
+
+// Generations
+export function getGenerations(): Generation[] {
+  return getItems<Generation>(STORAGE_KEYS.generations);
+}
+
+export function addGeneration(originalImage: string, promptUsed: string, teamMemberId: number | null): Generation {
+  const generations = getGenerations();
+  const generation: Generation = {
+    id: getNextId("generation"),
+    originalImage,
+    promptUsed,
+    teamMemberId,
+    createdAt: new Date(),
+  };
+  generations.unshift(generation); // Add to beginning
+  setItems(STORAGE_KEYS.generations, generations);
+  return generation;
+}
+
+export function updateGeneration(id: number, updates: Partial<Generation>): Generation | null {
+  const generations = getGenerations();
+  const index = generations.findIndex((g) => g.id === id);
+  if (index === -1) return null;
+  generations[index] = { ...generations[index], ...updates };
+  setItems(STORAGE_KEYS.generations, generations);
+  return generations[index];
+}
+
+export function deleteGeneration(id: number): void {
+  setItems(STORAGE_KEYS.generations, getGenerations().filter((g) => g.id !== id));
+  setItems(STORAGE_KEYS.variants, getVariants().filter((v) => v.generationId !== id));
+}
+
+// Variants
+export function getVariants(): Variant[] {
+  return getItems<Variant>(STORAGE_KEYS.variants);
+}
+
+export function getVariantsByGeneration(generationId: number): Variant[] {
+  return getVariants().filter((v) => v.generationId === generationId);
+}
+
+export function addVariants(generationId: number, imageDataArray: string[]): Variant[] {
+  const variants = getVariants();
+  const newVariants = imageDataArray.map((imageData) => ({
+    id: getNextId("variant"),
+    generationId,
+    imageData,
+    isFavorited: false,
+    createdAt: new Date(),
+  }));
+  variants.push(...newVariants);
+  setItems(STORAGE_KEYS.variants, variants);
+  return newVariants;
+}
+
+export function updateVariant(id: number, updates: Partial<Variant>): Variant | null {
+  const variants = getVariants();
+  const index = variants.findIndex((v) => v.id === id);
+  if (index === -1) return null;
+  variants[index] = { ...variants[index], ...updates };
+  setItems(STORAGE_KEYS.variants, variants);
+  return variants[index];
+}
+
+export function getVariantById(id: number): Variant | null {
+  return getVariants().find((v) => v.id === id) || null;
 }

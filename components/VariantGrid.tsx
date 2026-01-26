@@ -2,12 +2,7 @@
 
 import { useState } from "react";
 import { GridOverlay } from "./GridOverlay";
-
-interface Variant {
-  id: number;
-  imageData: string;
-  isFavorited: boolean;
-}
+import { type Variant } from "@/lib/storage";
 
 interface VariantGridProps {
   variants: Variant[];
