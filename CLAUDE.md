@@ -9,9 +9,10 @@ A web app for generating 256x256 pixel art avatars from photos using OpenAI's `g
 - **Framework**: Next.js 16 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS 4 with macOS Aqua theme
-- **Database**: SQLite + Drizzle ORM
+- **Storage**: Browser localStorage (no server database)
 - **AI**: OpenAI API (gpt-image-1)
 - **Image Processing**: Sharp
+- **Deployment**: Vercel
 
 ## Key Architecture
 
@@ -19,7 +20,7 @@ A web app for generating 256x256 pixel art avatars from photos using OpenAI's `g
 1. Upload photo (human or pet)
 2. AI generates 6 pixel art variants using style reference
 3. User picks favorite, assigns to team member
-4. History tracking with search/filter/favorites
+4. All data persists in browser localStorage
 
 ### Important Files
 
@@ -28,14 +29,14 @@ A web app for generating 256x256 pixel art avatars from photos using OpenAI's `g
 | `app/page.tsx` | Main generator UI |
 | `app/history/page.tsx` | Generation history browser |
 | `app/team/page.tsx` | Team member management |
-| `app/api/generate/route.ts` | Avatar generation endpoint |
-| `lib/db.ts` | Database connection & queries |
-| `lib/schema.ts` | Drizzle schema (4 tables) |
-| `public/Aidan hifi.png` | Style reference image |
+| `app/api/generate/route.ts` | Avatar generation endpoint (OpenAI) |
+| `lib/storage.ts` | localStorage helpers + default prompts |
+| `lib/openai.ts` | OpenAI image generation |
+| `public/style-reference.png` | Style reference image |
 
-### Database Schema
+### Data Model (localStorage)
 - `team_members` - Team info + official avatar
-- `prompts` - Saved generation prompts
+- `prompts` - Saved generation prompts (defaults bundled)
 - `generations` - Generation records
 - `variants` - 6 variants per generation
 
@@ -46,15 +47,13 @@ npm install
 npm run dev
 ```
 
-Database commands:
-```bash
-npm run db:push    # Push schema changes
-npm run db:studio  # Open Drizzle Studio
-```
-
 ## Deployment
 
-Not yet deployed. Target: Vercel with Turso (SQLite edge).
+**Live URL**: https://avatar-app-tau.vercel.app
+
+Deployed on Vercel (Layercode team). Auto-deploys on push to main.
+
+**Vercel Dashboard**: https://vercel.com/layercode-5ca82bb0/avatar-app
 
 ---
 
@@ -171,7 +170,7 @@ Tag issues by area:
 - `generator` - Core avatar generation
 - `ui` - Frontend/styling
 - `api` - Backend endpoints
-- `database` - Schema/queries
+- `storage` - localStorage/data
 - `team` - Team member features
 - `history` - History/search features
 
@@ -195,21 +194,24 @@ Tag issues by area:
 avatar-app/
 ├── app/
 │   ├── api/
-│   │   ├── generate/route.ts
-│   │   ├── generations/
-│   │   ├── prompts/route.ts
-│   │   ├── team/route.ts
-│   │   └── variants/[id]/route.ts
+│   │   └── generate/route.ts
 │   ├── history/page.tsx
 │   ├── team/page.tsx
 │   ├── layout.tsx
 │   ├── page.tsx
 │   └── globals.css
+├── components/
+│   ├── ColorPicker.tsx
+│   ├── GenerationCard.tsx
+│   ├── GridOverlay.tsx
+│   ├── ImageUpload.tsx
+│   ├── Navigation.tsx
+│   ├── PromptEditor.tsx
+│   └── VariantGrid.tsx
 ├── lib/
-│   ├── db.ts
-│   └── schema.ts
+│   ├── openai.ts
+│   └── storage.ts
 ├── public/
-│   └── Aidan hifi.png
-├── drizzle.config.ts
+│   └── style-reference.png
 └── package.json
 ```
