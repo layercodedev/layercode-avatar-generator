@@ -9,22 +9,24 @@ interface ColorPickerProps {
 }
 
 const PRESET_COLORS = [
+  // Row 1: Vibrant rainbow
+  "#ef4444", // Red
+  "#f97316", // Orange
+  "#eab308", // Yellow
+  "#22c55e", // Green
+  "#06b6d4", // Cyan
+  "#3b82f6", // Blue
+  "#8b5cf6", // Violet
+  "#ec4899", // Pink
+  // Row 2: Dark/muted versions
   "#1e2a3a", // Dark navy (default)
-  "#1a1a2e", // Deep purple-black
-  "#16213e", // Midnight blue
-  "#0f3460", // Ocean blue
-  "#2d4059", // Slate blue
-  "#3a506b", // Steel blue
-  "#1b262c", // Charcoal
-  "#222831", // Dark gray
-  "#2c3e50", // Wet asphalt
-  "#34495e", // Concrete
-  "#4a5568", // Cool gray
-  "#1f2937", // Gray 800
-  "#064e3b", // Emerald dark
-  "#1e3a3a", // Teal dark
-  "#312e81", // Indigo dark
-  "#4c1d95", // Purple dark
+  "#222222", // Black
+  "#4b5563", // Gray
+  "#ffffff", // White
+  "#7c2d12", // Brown
+  "#365314", // Dark green
+  "#1e3a5f", // Dark blue
+  "#581c87", // Dark purple
 ];
 
 export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
@@ -128,29 +130,26 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
             ))}
           </div>
 
-          {/* Custom color input */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
+          {/* Native color picker */}
+          <div className="flex items-center gap-3 mb-3">
+            <input
+              type="color"
+              value={value}
+              onChange={(e) => {
+                onChange(e.target.value);
+                setCustomColor(e.target.value);
+              }}
+              className="w-10 h-10 rounded-lg cursor-pointer border-2 border-gray-200 p-0"
+            />
+            <div className="flex-1">
+              <p className="text-xs text-gray-500 mb-1">Custom color</p>
               <input
                 type="text"
                 value={customColor}
                 onChange={(e) => handleCustomColorChange(e.target.value)}
                 placeholder="#1e2a3a"
-                className="aqua-input w-full font-mono text-sm pl-10"
+                className="aqua-input w-full font-mono text-sm"
                 maxLength={7}
-              />
-              <input
-                type="color"
-                value={value}
-                onChange={(e) => {
-                  onChange(e.target.value);
-                  setCustomColor(e.target.value);
-                }}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded cursor-pointer border-0 p-0"
-                style={{
-                  appearance: "none",
-                  WebkitAppearance: "none",
-                }}
               />
             </div>
             <button
@@ -158,17 +157,12 @@ export function ColorPicker({ value, onChange, label }: ColorPickerProps) {
                 onChange("#1e2a3a");
                 setCustomColor("#1e2a3a");
               }}
-              className="aqua-button text-xs px-3"
+              className="aqua-button text-xs px-3 self-end"
               title="Reset to default"
             >
               Reset
             </button>
           </div>
-
-          {/* Footer hint */}
-          <p className="text-xs text-gray-400 mt-3 text-center">
-            Click a preset or enter a hex code
-          </p>
         </div>
       )}
     </div>
