@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Navigation } from "@/components/Navigation";
+import packageJson from "@/package.json";
 
 export const metadata: Metadata = {
   title: "Layercode Avatar Generator",
@@ -33,6 +34,11 @@ export default function RootLayout({
             {/* Content */}
             <div className="aqua-content min-h-[600px]">
               {children}
+            </div>
+
+            {/* Version footer */}
+            <div className="px-4 py-2 text-xs text-gray-400 text-right border-t border-gray-200">
+              v{packageJson.version}
             </div>
           </div>
         </div>
