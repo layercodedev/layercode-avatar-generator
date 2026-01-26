@@ -37,8 +37,11 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Generation error:", error);
+    const errorMessage = error instanceof Error
+      ? `${error.message}${error.stack ? ` | Stack: ${error.stack.slice(0, 500)}` : ""}`
+      : "Generation failed";
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Generation failed" },
+      { error: errorMessage },
       { status: 500 }
     );
   }
