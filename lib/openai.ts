@@ -7,17 +7,33 @@ export const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Load the style reference image once at startup
-const styleReferencePath = path.join(process.cwd(), "public", "style-reference.png");
+// Cache for style reference image
 let styleReferenceBuffer: Buffer | null = null;
 
 async function getStyleReference(): Promise<Buffer> {
   if (!styleReferenceBuffer) {
-    const rawBuffer = fs.readFileSync(styleReferencePath);
-    styleReferenceBuffer = await sharp(rawBuffer)
-      .resize(1024, 1024, { fit: "cover" })
-      .png()
-      .toBuffer();
+    // Try filesystem first (works locally), then fetch from URL (works on Vercel)
+    const localPath = path.join(process.cwd(), "public", "style-reference.png");
+
+    try {
+      const rawBuffer = fs.readFileSync(localPath);
+      styleReferenceBuffer = await sharp(rawBuffer)
+        .resize(1024, 1024, { fit: "cover" })
+        .png()
+        .toBuffer();
+    } catch {
+      // Fallback: fetch from deployed URL
+      const baseUrl = process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "https://avatar-app-tau.vercel.app";
+      const response = await fetch(`${baseUrl}/style-reference.png`);
+      const arrayBuffer = await response.arrayBuffer();
+      const rawBuffer = Buffer.from(arrayBuffer);
+      styleReferenceBuffer = await sharp(rawBuffer)
+        .resize(1024, 1024, { fit: "cover" })
+        .png()
+        .toBuffer();
+    }
   }
   return styleReferenceBuffer;
 }
