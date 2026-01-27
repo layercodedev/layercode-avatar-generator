@@ -44,7 +44,7 @@ function HomeContent() {
   const [showGrid, setShowGrid] = useState(false);
   const [isPetMode, setIsPetMode] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState("#1e2a3a");
-  const [variantCount, setVariantCount] = useState(6);
+  const [variantCount, setVariantCount] = useState(2);
   const [currentGeneration, setCurrentGeneration] = useState<GenerationWithVariants | null>(null);
   const [exemplars, setExemplars] = useState<Exemplar[]>([]);
   const [selectedExemplarIds, setSelectedExemplarIds] = useState<number[]>([]);
