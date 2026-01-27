@@ -132,8 +132,9 @@ function HomeContent() {
 
       setVariants(newVariants);
       setCurrentGeneration({ ...generation, variants: newVariants });
-    } catch {
-      alert("Generation failed. Please try again.");
+    } catch (error) {
+      console.error("Generation error:", error);
+      alert(`Generation failed: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsGenerating(false);
     }

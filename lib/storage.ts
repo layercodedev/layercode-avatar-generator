@@ -605,3 +605,16 @@ export function deleteExemplar(id: number): void {
 export function getExemplarById(id: number): Exemplar | null {
   return getExemplars().find((e) => e.id === id) || null;
 }
+
+// Clear all history (generations and variants)
+export function clearAllHistory(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(STORAGE_KEYS.generations);
+  localStorage.removeItem(STORAGE_KEYS.variants);
+}
+
+// Clear all exemplars
+export function clearAllExemplars(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(STORAGE_KEYS.exemplars);
+}

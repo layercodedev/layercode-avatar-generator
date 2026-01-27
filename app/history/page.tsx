@@ -7,6 +7,7 @@ import {
   getTeamMembers,
   getVariantsByGeneration,
   deleteGeneration,
+  clearAllHistory,
   type Generation,
   type TeamMember,
   type Variant,
@@ -77,9 +78,26 @@ export default function HistoryPage() {
     loadGenerations();
   };
 
+  const handleClearAll = () => {
+    if (window.confirm("Are you sure you want to delete ALL generation history? This cannot be undone.")) {
+      clearAllHistory();
+      loadGenerations();
+    }
+  };
+
   return (
     <div className="space-y-5">
-      <h1 className="aqua-label text-lg">Generation History</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="aqua-label text-lg">Generation History</h1>
+        {generations.length > 0 && (
+          <button
+            onClick={handleClearAll}
+            className="aqua-button text-red-600 text-sm"
+          >
+            Clear All History
+          </button>
+        )}
+      </div>
 
       {/* Filters */}
       <div className="aqua-panel">
