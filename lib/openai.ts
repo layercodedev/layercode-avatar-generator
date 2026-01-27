@@ -42,7 +42,8 @@ export async function generateAvatars(
   imageBase64: string,
   prompt: string,
   count: number = 6,
-  isPetMode: boolean = false
+  isPetMode: boolean = false,
+  exemplarImages: string[] = []
 ): Promise<string[]> {
   const results: string[] = [];
 
@@ -59,6 +60,17 @@ export async function generateAvatars(
   // Get the style reference image (only needed for non-pet mode)
   const styleBuffer = isPetMode ? null : await getStyleReference();
 
+  // Process exemplar images (limit to 3)
+  const exemplarBuffers: Buffer[] = [];
+  for (const exemplarBase64 of exemplarImages.slice(0, 3)) {
+    const exemplarData = exemplarBase64.replace(/^data:image\/\w+;base64,/, "");
+    const exemplarBuffer = await sharp(Buffer.from(exemplarData, "base64"))
+      .resize(1024, 1024, { fit: "cover" })
+      .png()
+      .toBuffer();
+    exemplarBuffers.push(exemplarBuffer);
+  }
+
   // Generate images in parallel using gpt-image-1
   const promises = Array.from({ length: count }, async () => {
     // Create fresh file objects for each request
@@ -69,9 +81,20 @@ export async function generateAvatars(
       // Pet mode: only use the subject image (the pet photo)
       imageInput = subjectFile;
     } else {
-      // Normal mode: use both style reference and subject
+      // Normal mode: use style reference, exemplars, and subject
       const styleFile = await toFile(styleBuffer!, "style-reference.png", { type: "image/png" });
-      imageInput = [styleFile, subjectFile];
+
+      // Build array: style reference first, then exemplars, then subject
+      const imageArray = [styleFile];
+
+      // Add exemplar files
+      for (let i = 0; i < exemplarBuffers.length; i++) {
+        const exemplarFile = await toFile(exemplarBuffers[i], `exemplar-${i + 1}.png`, { type: "image/png" });
+        imageArray.push(exemplarFile);
+      }
+
+      imageArray.push(subjectFile);
+      imageInput = imageArray;
     }
 
     const response = await openai.images.edit({

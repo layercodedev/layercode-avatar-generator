@@ -4,7 +4,7 @@ import { generateAvatars } from "@/lib/openai";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { imageBase64, prompt, isPetMode, backgroundColor, count = 6 } = body;
+    const { imageBase64, prompt, isPetMode, backgroundColor, count = 6, exemplarImages = [] } = body;
 
     if (!imageBase64 || !prompt) {
       return NextResponse.json(
@@ -19,9 +19,27 @@ export async function POST(request: NextRequest) {
       finalPrompt = prompt.replace(/#1e2a3a/gi, backgroundColor);
     }
 
+    // Add exemplar context to prompt if exemplars are provided
+    if (exemplarImages.length > 0 && !isPetMode) {
+      const exemplarCount = exemplarImages.length;
+      const exemplarNote = `
+
+ADDITIONAL STYLE REFERENCES:
+You are provided with ${exemplarCount + 1} style reference image${exemplarCount > 0 ? "s" : ""} (images 1-${exemplarCount + 1}) that demonstrate the desired output style. These are successful examples that show the exact aesthetic to match. The final image is the subject whose likeness to capture.
+
+Ensure the output matches the consistent style shown across all reference images.`;
+      finalPrompt = finalPrompt + exemplarNote;
+    }
+
     // Generate avatar variants (1-10, default 6)
     const variantCount = Math.min(10, Math.max(1, count));
-    const generatedImages = await generateAvatars(imageBase64, finalPrompt, variantCount, isPetMode || false);
+    const generatedImages = await generateAvatars(
+      imageBase64,
+      finalPrompt,
+      variantCount,
+      isPetMode || false,
+      exemplarImages as string[]
+    );
 
     if (generatedImages.length === 0) {
       return NextResponse.json(

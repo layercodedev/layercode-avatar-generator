@@ -33,6 +33,13 @@ export interface Variant {
   createdAt: Date;
 }
 
+export interface Exemplar {
+  id: number;
+  imageData: string;
+  name: string;
+  createdAt: Date;
+}
+
 // Default prompts (hardcoded to ensure availability on fresh load)
 export const DEFAULT_PROMPTS: Omit<Prompt, "id" | "createdAt">[] = [
   {
@@ -388,6 +395,7 @@ const STORAGE_KEYS = {
   prompts: "avatar-app-prompts",
   generations: "avatar-app-generations",
   variants: "avatar-app-variants",
+  exemplars: "avatar-app-exemplars",
   nextId: "avatar-app-next-id",
 };
 
@@ -570,4 +578,30 @@ export function updateVariant(id: number, updates: Partial<Variant>): Variant | 
 
 export function getVariantById(id: number): Variant | null {
   return getVariants().find((v) => v.id === id) || null;
+}
+
+// Exemplars
+export function getExemplars(): Exemplar[] {
+  return getItems<Exemplar>(STORAGE_KEYS.exemplars);
+}
+
+export function addExemplar(imageData: string, name: string): Exemplar {
+  const exemplars = getExemplars();
+  const exemplar: Exemplar = {
+    id: getNextId("exemplar"),
+    imageData,
+    name,
+    createdAt: new Date(),
+  };
+  exemplars.push(exemplar);
+  setItems(STORAGE_KEYS.exemplars, exemplars);
+  return exemplar;
+}
+
+export function deleteExemplar(id: number): void {
+  setItems(STORAGE_KEYS.exemplars, getExemplars().filter((e) => e.id !== id));
+}
+
+export function getExemplarById(id: number): Exemplar | null {
+  return getExemplars().find((e) => e.id === id) || null;
 }

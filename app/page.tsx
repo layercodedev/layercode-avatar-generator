@@ -16,10 +16,13 @@ import {
   updateVariant,
   updateTeamMember,
   addPrompt,
+  getExemplars,
+  addExemplar,
   type Prompt,
   type TeamMember,
   type Variant,
   type Generation,
+  type Exemplar,
 } from "@/lib/storage";
 
 interface GenerationWithVariants extends Generation {
@@ -43,11 +46,14 @@ function HomeContent() {
   const [backgroundColor, setBackgroundColor] = useState("#1e2a3a");
   const [variantCount, setVariantCount] = useState(6);
   const [currentGeneration, setCurrentGeneration] = useState<GenerationWithVariants | null>(null);
+  const [exemplars, setExemplars] = useState<Exemplar[]>([]);
+  const [selectedExemplarIds, setSelectedExemplarIds] = useState<number[]>([]);
 
-  // Load prompts and team members from localStorage
+  // Load prompts, team members, and exemplars from localStorage
   useEffect(() => {
     loadPrompts();
     loadTeamMembers();
+    loadExemplars();
   }, []);
 
   // Load generation if ID is provided
@@ -63,6 +69,10 @@ function HomeContent() {
 
   const loadTeamMembers = () => {
     setTeamMembers(getTeamMembers());
+  };
+
+  const loadExemplars = () => {
+    setExemplars(getExemplars());
   };
 
   const loadGeneration = (id: number) => {
@@ -91,6 +101,11 @@ function HomeContent() {
     setSelectedVariant(null);
 
     try {
+      // Get selected exemplar image data
+      const exemplarImages = selectedExemplarIds
+        .map((id) => exemplars.find((e) => e.id === id)?.imageData)
+        .filter((data): data is string => !!data);
+
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -100,6 +115,7 @@ function HomeContent() {
           isPetMode,
           backgroundColor,
           count: variantCount,
+          exemplarImages,
         }),
       });
 
@@ -139,6 +155,28 @@ function HomeContent() {
 
     updateTeamMember(selectedTeamMember, { officialAvatarId: variant.id });
     alert("Avatar set as official!");
+  };
+
+  const handleSaveAsExemplar = (variant: Variant) => {
+    const name = window.prompt(`Name this exemplar (e.g., "Clean pixel art", "Good likeness"):`);
+    if (!name) return;
+    addExemplar(variant.imageData, name);
+    loadExemplars();
+    alert("Saved as exemplar!");
+  };
+
+  const toggleExemplarSelection = (id: number) => {
+    setSelectedExemplarIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((eid) => eid !== id);
+      }
+      // Limit to 3 exemplars
+      if (prev.length >= 3) {
+        alert("Maximum 3 exemplars allowed");
+        return prev;
+      }
+      return [...prev, id];
+    });
   };
 
   return (
@@ -187,6 +225,43 @@ function HomeContent() {
                 <option value={8}>8 variants</option>
               </select>
             </div>
+
+            {exemplars.length > 0 && !isPetMode && (
+              <div>
+                <label className="aqua-label block mb-2">
+                  Style Exemplars ({selectedExemplarIds.length}/3)
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Select up to 3 exemplars to guide style consistency
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {exemplars.map((exemplar) => (
+                    <button
+                      key={exemplar.id}
+                      onClick={() => toggleExemplarSelection(exemplar.id)}
+                      className={`relative aspect-square rounded overflow-hidden border-2 transition-all ${
+                        selectedExemplarIds.includes(exemplar.id)
+                          ? "border-blue-500 ring-2 ring-blue-300"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                      title={exemplar.name}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`data:image/png;base64,${exemplar.imageData}`}
+                        alt={exemplar.name}
+                        className="w-full h-full object-cover"
+                      />
+                      {selectedExemplarIds.includes(exemplar.id) && (
+                        <div className="absolute top-0.5 right-0.5 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+                          {selectedExemplarIds.indexOf(exemplar.id) + 1}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="aqua-label block mb-2">
@@ -263,6 +338,7 @@ function HomeContent() {
             onSelect={setSelectedVariant}
             onToggleFavorite={handleToggleFavorite}
             onSetOfficial={handleSetOfficial}
+            onSaveAsExemplar={handleSaveAsExemplar}
             selectedId={selectedVariant?.id}
             teamMemberId={selectedTeamMember}
             showGrid={showGrid}
