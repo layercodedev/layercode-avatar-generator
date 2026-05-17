@@ -39,7 +39,7 @@ function HomeContent() {
   const [showGrid, setShowGrid] = useState(false);
   const [isPetMode] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState("#E6E6E6");
-  const [variantCount, setVariantCount] = useState(2);
+  const [variantCount, setVariantCount] = useState(1);
   const [currentGeneration, setCurrentGeneration] = useState<GenerationWithVariants | null>(null);
   const [exemplars, setExemplars] = useState<Exemplar[]>([]);
   const [selectedExemplarIds, setSelectedExemplarIds] = useState<number[]>([]);
@@ -107,12 +107,15 @@ function HomeContent() {
     setVariants([]);
     setSelectedVariant(null);
 
-    try {
-      // Get selected exemplar image data
-      const exemplarImages = selectedExemplarIds
-        .map((id) => exemplars.find((e) => e.id === id)?.imageData)
-        .filter((data): data is string => !!data);
+    const exemplarImages = selectedExemplarIds
+      .map((id) => exemplars.find((e) => e.id === id)?.imageData)
+      .filter((data): data is string => !!data);
 
+    let generation: Generation | null = null;
+    const collected: Variant[] = [];
+    const errors: string[] = [];
+
+    try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -126,19 +129,53 @@ function HomeContent() {
         }),
       });
 
-      const data = await res.json();
-
-      if (data.error) {
-        alert(`Generation failed: ${data.error}`);
-        return;
+      if (!res.ok || !res.body) {
+        const errText = await res.text().catch(() => "");
+        let message = `Request failed (${res.status})`;
+        try {
+          const parsed = JSON.parse(errText);
+          if (parsed?.error) message = parsed.error;
+        } catch { /* not json */ }
+        throw new Error(message);
       }
 
-      // Save to localStorage
-      const generation = addGeneration(imageBase64, data.promptUsed, null);
-      const newVariants = addVariants(generation.id, data.images);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-      setVariants(newVariants);
-      setCurrentGeneration({ ...generation, variants: newVariants });
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const chunk = JSON.parse(line);
+
+          if (chunk.type === "meta") {
+            generation = addGeneration(imageBase64, chunk.promptUsed, null);
+            setCurrentGeneration({ ...generation, variants: [] });
+          } else if (chunk.type === "image" && generation) {
+            const [variant] = addVariants(generation.id, [chunk.image]);
+            collected.push(variant);
+            setVariants([...collected]);
+          } else if (chunk.type === "error") {
+            errors.push(chunk.message ?? `Variant ${chunk.index} failed`);
+          }
+        }
+      }
+
+      if (collected.length === 0) {
+        throw new Error(errors[0] ?? "No images generated");
+      }
+      if (errors.length > 0) {
+        console.warn("Some variants failed:", errors);
+      }
+      if (generation) {
+        setCurrentGeneration({ ...generation, variants: collected });
+      }
     } catch (error) {
       console.error("Generation error:", error);
       alert(`Generation failed: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -349,12 +386,12 @@ function HomeContent() {
           )}
         </div>
 
-        {isGenerating ? (
+        {isGenerating && variants.length === 0 ? (
           <div className="flex items-center justify-center h-64 bg-white/50 rounded-lg border border-gray-200">
             <div className="text-center space-y-3">
               <div className="aqua-spinner mx-auto" />
               <p className="text-gray-600">Generating {variantCount} avatar variant{variantCount === 1 ? "" : "s"}...</p>
-              <p className="text-xs text-gray-400">This may take a minute</p>
+              <p className="text-xs text-gray-400">Each variant takes 30-60 seconds</p>
             </div>
           </div>
         ) : variants.length > 0 ? (
