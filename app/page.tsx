@@ -8,20 +8,15 @@ import { VariantGrid } from "@/components/VariantGrid";
 import { ColorPicker } from "@/components/ColorPicker";
 import {
   getPrompts,
-  getTeamMembers,
   getGenerations,
   getVariantsByGeneration,
   addGeneration,
   addVariants,
   updateVariant,
-  updateTeamMember,
   addPrompt,
   getExemplars,
   addExemplar,
-  clearAllHistory,
-  clearAllExemplars,
   type Prompt,
-  type TeamMember,
   type Variant,
   type Generation,
   type Exemplar,
@@ -38,8 +33,6 @@ function HomeContent() {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [prompts, setPrompts] = useState<Prompt[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [selectedTeamMember, setSelectedTeamMember] = useState<number | null>(null);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -52,10 +45,9 @@ function HomeContent() {
   const [selectedExemplarIds, setSelectedExemplarIds] = useState<number[]>([]);
   const [bannerDismissed, setBannerDismissed] = useState(true);
 
-  // Load prompts, team members, and exemplars from localStorage
+  // Load prompts and exemplars from localStorage
   useEffect(() => {
     loadPrompts();
-    loadTeamMembers();
     const loaded = getExemplars();
     setExemplars(loaded);
     // Auto-select all default-seeded exemplars on first load
@@ -80,10 +72,6 @@ function HomeContent() {
     setPrompts(getPrompts());
   };
 
-  const loadTeamMembers = () => {
-    setTeamMembers(getTeamMembers());
-  };
-
   const loadExemplars = () => {
     setExemplars(getExemplars());
   };
@@ -97,7 +85,6 @@ function HomeContent() {
       setImageBase64(gen.originalImage);
       setPrompt(gen.promptUsed);
       setVariants(genVariants);
-      setSelectedTeamMember(gen.teamMemberId);
     }
   };
 
@@ -147,7 +134,7 @@ function HomeContent() {
       }
 
       // Save to localStorage
-      const generation = addGeneration(imageBase64, data.promptUsed, selectedTeamMember);
+      const generation = addGeneration(imageBase64, data.promptUsed, null);
       const newVariants = addVariants(generation.id, data.images);
 
       setVariants(newVariants);
@@ -169,13 +156,6 @@ function HomeContent() {
         )
       );
     }
-  };
-
-  const handleSetOfficial = (variant: Variant) => {
-    if (!selectedTeamMember) return;
-
-    updateTeamMember(selectedTeamMember, { officialAvatarId: variant.id });
-    alert("Avatar set as official!");
   };
 
   const handleSaveAsExemplar = (variant: Variant) => {
@@ -329,54 +309,6 @@ function HomeContent() {
                 </div>
               </div>
 
-            <div>
-              <label className="aqua-label block mb-2">
-                Assign to Team Member
-              </label>
-              <select
-                value={selectedTeamMember || ""}
-                onChange={(e) =>
-                  setSelectedTeamMember(e.target.value ? Number(e.target.value) : null)
-                }
-                className="aqua-select w-full"
-              >
-                <option value="">No team member</option>
-                {teamMembers.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="pt-2 border-t border-gray-200">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    if (confirm("Clear all generation history? This cannot be undone.")) {
-                      clearAllHistory();
-                      setVariants([]);
-                      setCurrentGeneration(null);
-                    }
-                  }}
-                  className="aqua-button text-xs flex-1"
-                >
-                  Clear History
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm("Clear all exemplars? This cannot be undone.")) {
-                      clearAllExemplars();
-                      setExemplars([]);
-                      setSelectedExemplarIds([]);
-                    }
-                  }}
-                  className="aqua-button text-xs flex-1"
-                >
-                  Clear Exemplars
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -430,10 +362,8 @@ function HomeContent() {
             variants={variants}
             onSelect={setSelectedVariant}
             onToggleFavorite={handleToggleFavorite}
-            onSetOfficial={handleSetOfficial}
             onSaveAsExemplar={handleSaveAsExemplar}
             selectedId={selectedVariant?.id}
-            teamMemberId={selectedTeamMember}
             showGrid={showGrid}
           />
         ) : (
