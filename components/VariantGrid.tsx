@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { GridOverlay } from "./GridOverlay";
 import { type Variant } from "@/lib/storage";
 
 interface VariantGridProps {
@@ -12,7 +11,6 @@ interface VariantGridProps {
   onSaveAsExemplar?: (variant: Variant) => void;
   selectedId?: number | null;
   teamMemberId?: number | null;
-  showGrid?: boolean;
 }
 
 export function VariantGrid({
@@ -23,7 +21,6 @@ export function VariantGrid({
   onSaveAsExemplar,
   selectedId,
   teamMemberId,
-  showGrid = false,
 }: VariantGridProps) {
   const [lightboxVariant, setLightboxVariant] = useState<Variant | null>(null);
 
@@ -54,7 +51,6 @@ export function VariantGrid({
               alt={`Avatar variant ${variant.id}`}
               className="w-full h-full object-cover"
             />
-            <GridOverlay visible={showGrid} />
           </div>
 
           {/* Actions overlay */}

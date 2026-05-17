@@ -36,7 +36,6 @@ function HomeContent() {
   const [variants, setVariants] = useState<Variant[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showGrid, setShowGrid] = useState(false);
   const [isPetMode] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState("#E6E6E6");
   const [variantCount, setVariantCount] = useState(1);
@@ -371,19 +370,8 @@ function HomeContent() {
 
       {/* Right column: Results */}
       <div className="aqua-panel">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <h2 className="aqua-label">Generated Variants</h2>
-          {variants.length > 0 && (
-            <label className="flex items-center gap-2 text-xs text-gray-600">
-              <input
-                type="checkbox"
-                checked={showGrid}
-                onChange={(e) => setShowGrid(e.target.checked)}
-                className="aqua-checkbox"
-              />
-              Show grid overlay
-            </label>
-          )}
         </div>
 
         {isGenerating && variants.length === 0 ? (
@@ -401,7 +389,6 @@ function HomeContent() {
             onToggleFavorite={handleToggleFavorite}
             onSaveAsExemplar={handleSaveAsExemplar}
             selectedId={selectedVariant?.id}
-            showGrid={showGrid}
           />
         ) : (
           <div className="flex items-center justify-center h-64 bg-white/50 rounded-lg border border-gray-200">
