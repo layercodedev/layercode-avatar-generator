@@ -15,19 +15,19 @@ export async function POST(request: NextRequest) {
 
     // Replace background color placeholder in prompt if custom color is provided
     let finalPrompt = prompt;
-    if (backgroundColor && backgroundColor !== "#1e2a3a") {
-      finalPrompt = prompt.replace(/#1e2a3a/gi, backgroundColor);
+    if (backgroundColor && backgroundColor !== "#E6E6E6") {
+      finalPrompt = prompt.replace(/#E6E6E6/gi, backgroundColor);
     }
 
     // Add exemplar context to prompt if exemplars are provided
     if (exemplarImages.length > 0 && !isPetMode) {
-      const exemplarCount = exemplarImages.length;
+      const n = exemplarImages.length;
       const exemplarNote = `
 
-ADDITIONAL STYLE REFERENCES:
-You are provided with ${exemplarCount + 1} style reference image${exemplarCount > 0 ? "s" : ""} (images 1-${exemplarCount + 1}) that demonstrate the desired output style. These are successful examples that show the exact aesthetic to match. The final image is the subject whose likeness to capture.
+REFERENCE IMAGES:
+You are provided with ${n} style reference image${n === 1 ? "" : "s"} (images 1-${n}) that demonstrate the desired output style, followed by the subject photo (image ${n + 1}) whose likeness to capture.
 
-Ensure the output matches the consistent style shown across all reference images.`;
+Match the consistent visual style shown across the reference images. Capture the likeness of the person in the subject photo.`;
       finalPrompt = finalPrompt + exemplarNote;
     }
 

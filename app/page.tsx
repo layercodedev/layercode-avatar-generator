@@ -18,6 +18,8 @@ import {
   addPrompt,
   getExemplars,
   addExemplar,
+  clearAllHistory,
+  clearAllExemplars,
   type Prompt,
   type TeamMember,
   type Variant,
@@ -42,18 +44,29 @@ function HomeContent() {
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
-  const [isPetMode, setIsPetMode] = useState(false);
-  const [backgroundColor, setBackgroundColor] = useState("#1e2a3a");
+  const [isPetMode] = useState(false);
+  const [backgroundColor, setBackgroundColor] = useState("#E6E6E6");
   const [variantCount, setVariantCount] = useState(2);
   const [currentGeneration, setCurrentGeneration] = useState<GenerationWithVariants | null>(null);
   const [exemplars, setExemplars] = useState<Exemplar[]>([]);
   const [selectedExemplarIds, setSelectedExemplarIds] = useState<number[]>([]);
+  const [bannerDismissed, setBannerDismissed] = useState(true);
 
   // Load prompts, team members, and exemplars from localStorage
   useEffect(() => {
     loadPrompts();
     loadTeamMembers();
-    loadExemplars();
+    const loaded = getExemplars();
+    setExemplars(loaded);
+    // Auto-select all default-seeded exemplars on first load
+    setSelectedExemplarIds((prev) => {
+      if (prev.length > 0) return prev;
+      return loaded.slice(0, 4).map((e) => e.id);
+    });
+    // Show welcome banner unless previously dismissed
+    if (typeof window !== "undefined") {
+      setBannerDismissed(localStorage.getItem("avatar-app-banner-dismissed") === "1");
+    }
   }, []);
 
   // Load generation if ID is provided
@@ -89,8 +102,15 @@ function HomeContent() {
   };
 
   const handleSavePrompt = (name: string, content: string) => {
-    addPrompt(name, content, isPetMode);
+    addPrompt(name, content, false);
     loadPrompts();
+  };
+
+  const dismissBanner = () => {
+    setBannerDismissed(true);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("avatar-app-banner-dismissed", "1");
+    }
   };
 
   const handleGenerate = async () => {
@@ -171,9 +191,8 @@ function HomeContent() {
       if (prev.includes(id)) {
         return prev.filter((eid) => eid !== id);
       }
-      // Limit to 3 exemplars
-      if (prev.length >= 3) {
-        alert("Maximum 3 exemplars allowed");
+      if (prev.length >= 4) {
+        alert("Maximum 4 exemplars allowed");
         return prev;
       }
       return [...prev, id];
@@ -181,13 +200,28 @@ function HomeContent() {
   };
 
   return (
-    <div className="grid md:grid-cols-2 gap-6">
+    <div className="space-y-6">
+      {!bannerDismissed && (
+        <div className="aqua-panel flex items-start gap-3 bg-blue-50 border-blue-200">
+          <div className="flex-1 text-sm text-gray-700">
+            <strong className="text-gray-900">Generate your Layercode claymation avatar.</strong>{" "}
+            Upload a clean headshot, then hit Generate. Try a few — pick your favorite.
+          </div>
+          <button
+            onClick={dismissBanner}
+            className="aqua-button text-xs shrink-0"
+            aria-label="Dismiss"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      <div className="grid md:grid-cols-2 gap-6">
       {/* Left column: Upload and settings */}
       <div className="space-y-5">
         <div className="aqua-panel">
-          <h2 className="aqua-label text-sm mb-3">
-            {isPetMode ? "Upload Pet Photo 🐾" : "Upload Photo"}
-          </h2>
+          <h2 className="aqua-label text-sm mb-3">Upload Photo</h2>
           <ImageUpload onImageSelect={setImageBase64} previewUrl={imageBase64} />
         </div>
 
@@ -200,7 +234,6 @@ function HomeContent() {
               prompts={prompts}
               onSavePrompt={handleSavePrompt}
               onLoadPrompts={loadPrompts}
-              onPetModeChange={setIsPetMode}
             />
 
             <ColorPicker
@@ -227,13 +260,12 @@ function HomeContent() {
               </select>
             </div>
 
-            {exemplars.length > 0 && !isPetMode && (
-              <div>
+            <div>
                 <label className="aqua-label block mb-2">
-                  Style Exemplars ({selectedExemplarIds.length}/3)
+                  Style Exemplars ({selectedExemplarIds.length}/4)
                 </label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Select up to 3 exemplars to guide style consistency
+                  Upload or select up to 4 exemplars to guide style consistency
                 </p>
                 <div className="grid grid-cols-4 gap-2">
                   {exemplars.map((exemplar) => (
@@ -249,7 +281,7 @@ function HomeContent() {
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={`data:image/png;base64,${exemplar.imageData}`}
+                        src={`data:${exemplar.mimeType ?? "image/png"};base64,${exemplar.imageData}`}
                         alt={exemplar.name}
                         className="w-full h-full object-cover"
                       />
@@ -260,9 +292,42 @@ function HomeContent() {
                       )}
                     </button>
                   ))}
+                  {/* Upload button */}
+                  <label className="relative aspect-square rounded overflow-hidden border-2 border-dashed border-gray-300 hover:border-blue-400 cursor-pointer transition-all flex items-center justify-center bg-gray-50 hover:bg-blue-50">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          const base64 = event.target?.result as string;
+                          // Strip data URL prefix - handle various formats
+                          const imageData = base64.replace(/^data:image\/[^;]+;base64,/, "");
+                          if (!imageData || imageData === base64) {
+                            alert("Failed to process image. Please try a different file.");
+                            return;
+                          }
+                          // Use filename as name (without extension)
+                          const name = file.name.replace(/\.[^.]+$/, "") || `Reference ${Date.now()}`;
+                          addExemplar(imageData, name);
+                          loadExemplars();
+                        };
+                        reader.onerror = () => {
+                          alert("Failed to read file. Please try again.");
+                        };
+                        reader.readAsDataURL(file);
+                        e.target.value = "";
+                      }}
+                    />
+                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </label>
                 </div>
               </div>
-            )}
 
             <div>
               <label className="aqua-label block mb-2">
@@ -283,6 +348,35 @@ function HomeContent() {
                 ))}
               </select>
             </div>
+
+            <div className="pt-2 border-t border-gray-200">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (confirm("Clear all generation history? This cannot be undone.")) {
+                      clearAllHistory();
+                      setVariants([]);
+                      setCurrentGeneration(null);
+                    }
+                  }}
+                  className="aqua-button text-xs flex-1"
+                >
+                  Clear History
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm("Clear all exemplars? This cannot be undone.")) {
+                      clearAllExemplars();
+                      setExemplars([]);
+                      setSelectedExemplarIds([]);
+                    }
+                  }}
+                  className="aqua-button text-xs flex-1"
+                >
+                  Clear Exemplars
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -298,12 +392,10 @@ function HomeContent() {
           {isGenerating ? (
             <span className="flex items-center justify-center gap-2">
               <div className="aqua-spinner w-5 h-5" />
-              {isPetMode ? "Generating pet avatars..." : "Generating avatars..."}
+              Generating avatars...
             </span>
           ) : (
-            isPetMode
-              ? `Generate ${variantCount} Pet Variant${variantCount === 1 ? "" : "s"} 🐾`
-              : `Generate ${variantCount} Variant${variantCount === 1 ? "" : "s"}`
+            `Generate ${variantCount} Variant${variantCount === 1 ? "" : "s"}`
           )}
         </button>
       </div>
@@ -349,6 +441,7 @@ function HomeContent() {
             <p className="text-gray-400">Upload a photo and generate variants</p>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

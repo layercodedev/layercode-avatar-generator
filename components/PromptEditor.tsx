@@ -9,7 +9,6 @@ interface PromptEditorProps {
   prompts: Prompt[];
   onSavePrompt: (name: string, content: string) => void;
   onLoadPrompts: () => void;
-  onPetModeChange?: (isPetMode: boolean) => void;
 }
 
 export function PromptEditor({
@@ -18,7 +17,6 @@ export function PromptEditor({
   prompts,
   onSavePrompt,
   onLoadPrompts,
-  onPetModeChange,
 }: PromptEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -39,7 +37,6 @@ export function PromptEditor({
       hasInitialized.current = true;
       onChange(defaultPrompt.content);
       setSelectedPromptId(defaultPrompt.id);
-      onPetModeChange?.(defaultPrompt.isPetMode);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prompts]);
@@ -49,9 +46,8 @@ export function PromptEditor({
     if (prompt) {
       onChange(prompt.content);
       setSelectedPromptId(promptId);
-      onPetModeChange?.(prompt.isPetMode);
     }
-  }, [prompts, onChange, onPetModeChange]);
+  }, [prompts, onChange]);
 
   const handleSave = useCallback(() => {
     if (newPromptName.trim()) {
@@ -73,7 +69,7 @@ export function PromptEditor({
           <option value="">Select a saved prompt...</option>
           {prompts.map((prompt) => (
             <option key={prompt.id} value={prompt.id}>
-              {prompt.name} {prompt.isDefault ? "(Default)" : ""}{prompt.isPetMode ? " 🐾" : ""}
+              {prompt.name}{prompt.isDefault ? " (Default)" : ""}
             </option>
           ))}
         </select>

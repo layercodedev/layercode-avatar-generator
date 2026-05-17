@@ -1,12 +1,13 @@
 {
   "name": "avatar-app",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed-exemplars": "node scripts/seed-exemplars.mjs"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
