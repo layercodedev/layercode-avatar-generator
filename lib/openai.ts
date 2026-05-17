@@ -56,7 +56,7 @@ export async function generateAvatars(
     }
 
     const response = await openai.images.edit({
-      model: "gpt-image-1",
+      model: "gpt-image-1.5",
       image: imageInput,
       prompt: prompt,
       size: "1024x1024",
