@@ -171,9 +171,45 @@ function getItems<T>(key: string): T[] {
   });
 }
 
+function isQuotaError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return (
+    err.name === "QuotaExceededError" ||
+    err.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+    /quota/i.test(err.message)
+  );
+}
+
 function setItems<T>(key: string, items: T[]): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(key, JSON.stringify(items));
+  try {
+    localStorage.setItem(key, JSON.stringify(items));
+  } catch (err) {
+    if (!isQuotaError(err)) throw err;
+    // localStorage full — evict generation history (biggest culprit) and retry.
+    pruneHeavyHistory();
+    try {
+      localStorage.setItem(key, JSON.stringify(items));
+    } catch (retryErr) {
+      if (!isQuotaError(retryErr)) throw retryErr;
+      // Still full after pruning — nuke everything except current write target.
+      localStorage.removeItem(STORAGE_KEYS.generations);
+      localStorage.removeItem(STORAGE_KEYS.variants);
+      localStorage.setItem(key, JSON.stringify(items));
+    }
+  }
+}
+
+function pruneHeavyHistory(): void {
+  if (typeof window === "undefined") return;
+  // Keep the 3 most recent generations; drop older ones and their variants.
+  const generations = (JSON.parse(localStorage.getItem(STORAGE_KEYS.generations) || "[]") as Generation[])
+    .slice(0, 3);
+  const keepIds = new Set(generations.map((g) => g.id));
+  const variants = (JSON.parse(localStorage.getItem(STORAGE_KEYS.variants) || "[]") as Variant[])
+    .filter((v) => keepIds.has(v.generationId));
+  localStorage.setItem(STORAGE_KEYS.generations, JSON.stringify(generations));
+  localStorage.setItem(STORAGE_KEYS.variants, JSON.stringify(variants));
 }
 
 // Team Members
