@@ -1,35 +1,24 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { PromptEditor } from "@/components/PromptEditor";
 import { VariantGrid } from "@/components/VariantGrid";
 import { ColorPicker } from "@/components/ColorPicker";
 import {
   getPrompts,
-  getGenerations,
-  getVariantsByGeneration,
-  addGeneration,
-  addVariants,
-  updateVariant,
   addPrompt,
   getExemplars,
   addExemplar,
   type Prompt,
   type Variant,
-  type Generation,
   type Exemplar,
 } from "@/lib/storage";
 
-interface GenerationWithVariants extends Generation {
-  variants: Variant[];
-}
+let localId = 0;
+const nextLocalId = () => ++localId;
 
-function HomeContent() {
-  const searchParams = useSearchParams();
-  const generationId = searchParams.get("generationId");
-
+export default function HomeContent() {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -39,7 +28,6 @@ function HomeContent() {
   const [isPetMode] = useState(false);
   const [backgroundColor, setBackgroundColor] = useState("#E6E6E6");
   const [variantCount, setVariantCount] = useState(1);
-  const [currentGeneration, setCurrentGeneration] = useState<GenerationWithVariants | null>(null);
   const [exemplars, setExemplars] = useState<Exemplar[]>([]);
   const [selectedExemplarIds, setSelectedExemplarIds] = useState<number[]>([]);
   const [bannerDismissed, setBannerDismissed] = useState(true);
@@ -57,15 +45,11 @@ function HomeContent() {
     // Show welcome banner unless previously dismissed
     if (typeof window !== "undefined") {
       setBannerDismissed(localStorage.getItem("avatar-app-banner-dismissed") === "1");
+      // One-time cleanup of legacy generation/variant storage (no longer persisted)
+      localStorage.removeItem("avatar-app-generations");
+      localStorage.removeItem("avatar-app-variants");
     }
   }, []);
-
-  // Load generation if ID is provided
-  useEffect(() => {
-    if (generationId) {
-      loadGeneration(parseInt(generationId));
-    }
-  }, [generationId]);
 
   const loadPrompts = () => {
     setPrompts(getPrompts());
@@ -73,18 +57,6 @@ function HomeContent() {
 
   const loadExemplars = () => {
     setExemplars(getExemplars());
-  };
-
-  const loadGeneration = (id: number) => {
-    const generations = getGenerations();
-    const gen = generations.find((g) => g.id === id);
-    if (gen) {
-      const genVariants = getVariantsByGeneration(id);
-      setCurrentGeneration({ ...gen, variants: genVariants });
-      setImageBase64(gen.originalImage);
-      setPrompt(gen.promptUsed);
-      setVariants(genVariants);
-    }
   };
 
   const handleSavePrompt = (name: string, content: string) => {
@@ -110,7 +82,7 @@ function HomeContent() {
       .map((id) => exemplars.find((e) => e.id === id)?.imageData)
       .filter((data): data is string => !!data);
 
-    let generation: Generation | null = null;
+    const generationId = nextLocalId();
     const collected: Variant[] = [];
     const errors: string[] = [];
 
@@ -153,11 +125,14 @@ function HomeContent() {
           if (!line.trim()) continue;
           const chunk = JSON.parse(line);
 
-          if (chunk.type === "meta") {
-            generation = addGeneration(imageBase64, chunk.promptUsed, null);
-            setCurrentGeneration({ ...generation, variants: [] });
-          } else if (chunk.type === "image" && generation) {
-            const [variant] = addVariants(generation.id, [chunk.image]);
+          if (chunk.type === "image") {
+            const variant: Variant = {
+              id: nextLocalId(),
+              generationId,
+              imageData: chunk.image,
+              isFavorited: false,
+              createdAt: new Date(),
+            };
             collected.push(variant);
             setVariants([...collected]);
           } else if (chunk.type === "error") {
@@ -172,9 +147,6 @@ function HomeContent() {
       if (errors.length > 0) {
         console.warn("Some variants failed:", errors);
       }
-      if (generation) {
-        setCurrentGeneration({ ...generation, variants: collected });
-      }
     } catch (error) {
       console.error("Generation error:", error);
       alert(`Generation failed: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -184,14 +156,11 @@ function HomeContent() {
   };
 
   const handleToggleFavorite = (variant: Variant) => {
-    const updated = updateVariant(variant.id, { isFavorited: !variant.isFavorited });
-    if (updated) {
-      setVariants(
-        variants.map((v) =>
-          v.id === variant.id ? { ...v, isFavorited: !v.isFavorited } : v
-        )
-      );
-    }
+    setVariants(
+      variants.map((v) =>
+        v.id === variant.id ? { ...v, isFavorited: !v.isFavorited } : v
+      )
+    );
   };
 
   const handleSaveAsExemplar = (variant: Variant) => {
@@ -401,10 +370,3 @@ function HomeContent() {
   );
 }
 
-export default function Home() {
-  return (
-    <Suspense fallback={<div className="text-gray-400">Loading...</div>}>
-      <HomeContent />
-    </Suspense>
-  );
-}

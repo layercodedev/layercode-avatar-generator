@@ -8,7 +8,6 @@ export function Navigation() {
 
   const links = [
     { href: "/", label: "Generate", icon: "M12 4v16m8-8H4" },
-    { href: "/history", label: "History", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
   ];
 
   return (
